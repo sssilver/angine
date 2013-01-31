@@ -46,7 +46,13 @@ void Game::processKeyboard()
         switch (*key) {
         case 27:
             this->quit();
+        default:
+            std::wstringstream s;
+            s << "Key " << (*key) << " pressed." << std::endl;
+
+            OutputDebugString(s.str().c_str());
         }
+
     }
 }
 
