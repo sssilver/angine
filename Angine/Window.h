@@ -2,6 +2,7 @@
 
 #include <string>
 #include <set>
+#include <sstream>
 
 #include <Windows.h>
 
@@ -30,7 +31,7 @@ public:
 	void update(void);
 	void stop(void);
 
-    HWND getHWND();
+    const HWND getHWND();
 
     void keyDown(int key);
     void keyUp(int key);
@@ -40,4 +41,3 @@ public:
 	static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 };
-

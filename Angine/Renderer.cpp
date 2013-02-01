@@ -48,6 +48,7 @@ bool Renderer::start(void)
 
     glClearColor(.2f, .5f, .0f, .0f);                   // Black Background
 
+
     return true;
 }
 

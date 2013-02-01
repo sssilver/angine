@@ -48,7 +48,7 @@ void Game::processKeyboard()
             this->quit();
         default:
             std::wstringstream s;
-            s << "Key " << (*key) << " pressed." << std::endl;
+            s << "Key " << (*key) << " pressed. Buffer size: " << keys.size() << std::endl;
 
             OutputDebugString(s.str().c_str());
         }

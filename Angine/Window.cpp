@@ -2,7 +2,7 @@
 
 
 Window::Window(HINSTANCE hInstance) : wndClassName(L"myWindowClass"),
-									  hInstance(hInstance)
+    hInstance(hInstance)
 {
     this->wc.cbSize        = sizeof(WNDCLASSEX);
     this->wc.style         = CS_OWNDC;
@@ -28,7 +28,7 @@ Window::Window(HINSTANCE hInstance) : wndClassName(L"myWindowClass"),
         WS_OVERLAPPEDWINDOW,
         CW_USEDEFAULT, CW_USEDEFAULT, 800, 600,
         NULL, NULL, this->hInstance, NULL
-	);
+        );
 
     if (this->hwnd == NULL) {
         MessageBox(NULL, L"Window Creation Failed!", L"Error!", MB_ICONEXCLAMATION | MB_OK);
@@ -50,28 +50,26 @@ Window::~Window(void)
 bool Window::start(void)
 {
 
-	return true;
+    return true;
 }
 
 
 void Window::update(void)
 {
-	if (GetMessage(&this->Msg, NULL, 0, 0) > 0) {
-		TranslateMessage(&this->Msg);
-		DispatchMessage(&this->Msg);
-	} else {
-		this->kill();
-	}
+    if (PeekMessage(&this->Msg, NULL, 0, 0, PM_REMOVE) > 0) {
+        TranslateMessage(&this->Msg);
+        DispatchMessage(&this->Msg);
+    }
 }
 
 
 void Window::stop(void)
 {
-	CloseWindow(Window::hwnd);
+    CloseWindow(Window::hwnd);
 }
 
 
-HWND Window::getHWND()
+const HWND Window::getHWND()
 {
     return this->hwnd;
 }
@@ -100,25 +98,38 @@ LRESULT CALLBACK Window::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
     Window *window = (Window*)GetWindowLongPtr(hwnd, GWL_USERDATA);
 
     switch (msg) {
-        case WM_CLOSE:
-            DestroyWindow(hwnd);
-            break;
+    case WM_CLOSE:
+        DestroyWindow(hwnd);
+        break;
 
-        case WM_DESTROY:
-            window->keyDown(27);
-            PostQuitMessage(0);
-            break;
+    case WM_DESTROY:
+        window->keyDown(27);
+        PostQuitMessage(0);
+        break;
 
-        case WM_KEYDOWN:
-            window->keyDown((int)wParam);
-            break;
+    case WM_KEYDOWN: {
+        window->keyDown((int)wParam);
 
-        case WM_KEYUP:
-            window->keyUp((int)wParam);
-            break;
+        std::wstringstream s;
+        s << "(root) Key " << (wParam) << " down. lParam: " << lParam << std::endl;
 
-        default:
-            return DefWindowProc(hwnd, msg, wParam, lParam);
+        OutputDebugString(s.str().c_str());
+                     }
+        break;
+
+    case WM_KEYUP: {
+        window->keyUp((int)wParam);
+
+        std::wstringstream s;
+        s << "(root) Key " << (wParam) << " up. lParam: " << lParam << " -- " << (lParam & 0x80000000) << std::endl;
+
+        OutputDebugString(s.str().c_str());
+                   }
+
+        break;
+
+    default:
+        return DefWindowProc(hwnd, msg, wParam, lParam);
     }
 
     return 0;
