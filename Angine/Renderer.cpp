@@ -22,12 +22,15 @@ Renderer::Renderer(int screenWidth, int screenHeight, bool vsync, HWND hwnd, boo
     m_depthStencilState = 0;
     m_depthStencilView = 0;
     m_rasterState = 0;
+
+    m_shader = new Shader();
 }
 
 
 bool Renderer::start(void)
 {
     HRESULT result;
+    bool bResult;
 
     IDXGIFactory* factory;
     IDXGIAdapter* adapter;
@@ -49,39 +52,33 @@ bool Renderer::start(void)
 
     // Create a DirectX graphics interface factory.
     result = CreateDXGIFactory(__uuidof(IDXGIFactory), (void**)&factory);
-    if (FAILED(result)) {
+    if (FAILED(result))
         return false;
-    }
 
     // Use the factory to create an adapter for the primary graphics interface (video card).
     result = factory->EnumAdapters(0, &adapter);
-    if (FAILED(result)) {
+    if (FAILED(result))
         return false;
-    }
 
     // Enumerate the primary adapter output (monitor).
     result = adapter->EnumOutputs(0, &adapterOutput);
-    if (FAILED(result)) {
+    if (FAILED(result))
         return false;
-    }
 
     // Get the number of modes that fit the DXGI_FORMAT_R8G8B8A8_UNORM display format for the adapter output (monitor).
     result = adapterOutput->GetDisplayModeList(DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_ENUM_MODES_INTERLACED, &numModes, NULL);
-    if (FAILED(result)) {
+    if (FAILED(result))
         return false;
-    }
 
     // Create a list to hold all the possible display modes for this monitor/video card combination.
     displayModeList = new DXGI_MODE_DESC[numModes];
-    if (!displayModeList) {
+    if (!displayModeList)
         return false;
-    }
 
     // Now fill the display mode list structures.
     result = adapterOutput->GetDisplayModeList(DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_ENUM_MODES_INTERLACED, &numModes, displayModeList);
-    if (FAILED(result)) {
+    if (FAILED(result))
         return false;
-    }
 
     // Now go through all the display modes and find the one that matches the screen width and height.
     // When a match is found store the numerator and denominator of the refresh rate for that monitor.
@@ -96,18 +93,18 @@ bool Renderer::start(void)
 
     // Get the adapter (video card) description.
     result = adapter->GetDesc(&adapterDesc);
-    if (FAILED(result)) {
+    if (FAILED(result))
         return false;
-    }
+
+    OutputDebugString(adapterDesc.Description);
 
     // Store the dedicated video card memory in megabytes.
     m_videoCardMemory = (int)(adapterDesc.DedicatedVideoMemory / 1024 / 1024);
 
     // Convert the name of the video card to a character array and store it.
     error = wcstombs_s(&stringLength, m_videoCardDescription, 128, adapterDesc.Description, 128);
-    if (error != 0) {
+    if (error != 0)
         return false;
-    }
 
     // Release the display mode list.
     delete [] displayModeList;
@@ -174,23 +171,20 @@ bool Renderer::start(void)
     featureLevel = D3D_FEATURE_LEVEL_10_0;
 
     // Create the swap chain, Direct3D device, and Direct3D device context.
-    result = D3D11CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, 0, &featureLevel, 1, 
+    result = D3D11CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL,  0, &featureLevel, 1, 
                                            D3D11_SDK_VERSION, &swapChainDesc, &m_swapChain, &m_device, NULL, &m_deviceContext);
-    if (FAILED(result)) {
+    if (FAILED(result))
         return false;
-    }
 
     // Get the pointer to the back buffer.
     result = m_swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&backBufferPtr);
-    if (FAILED(result)) {
+    if (FAILED(result))
         return false;
-    }
 
     // Create the render target view with the back buffer pointer.
     result = m_device->CreateRenderTargetView(backBufferPtr, NULL, &m_renderTargetView);
-    if (FAILED(result)) {
+    if (FAILED(result))
         return false;
-    }
 
     // Release pointer to the back buffer as we no longer need it.
     backBufferPtr->Release();
@@ -208,11 +202,11 @@ bool Renderer::start(void)
     rasterDesc.ScissorEnable = false;
     rasterDesc.SlopeScaledDepthBias = 0.0f;
 
+
     // Create the rasterizer state from the description we just filled out.
     result = m_device->CreateRasterizerState(&rasterDesc, &m_rasterState);
-    if(FAILED(result)) {
+    if (FAILED(result))
         return false;
-    }
 
     // Now set the rasterizer state.
     m_deviceContext->RSSetState(m_rasterState);
@@ -234,19 +228,28 @@ bool Renderer::start(void)
     // Create an orthographic projection matrix for 2D rendering.
     D3DXMatrixOrthoLH(&m_orthoMatrix, (float)screenWidth, (float)screenHeight, screenNear, screenDepth);
 
+    result = this->m_shader->initialize(this->m_device, this->hwnd, L"color.vs", L"color.ps");
+    if (!(result))
+        return false;
+
     return true;
 }
 
 
 void Renderer::update(void)
 {
+    D3DXMATRIX viewMatrix, projectionMatrix, worldMatrix;
+
     this->beginScene(.3f, .0f, .0f, 1.0f);
+    this->m_shader->render(this->m_deviceContext, 3, m_worldMatrix, m_orthoMatrix, m_projectionMatrix);
     this->endScene();
 }
 
 
 void Renderer::stop(void)
 {
+    this->m_shader->shutdown();
+
     // Before shutting down set to windowed mode or when you release the swap chain it will throw an exception.
     if (m_swapChain) {
         m_swapChain->SetFullscreenState(false, NULL);
@@ -296,6 +299,7 @@ void Renderer::stop(void)
 
 Renderer::~Renderer(void)
 {
+    delete this->m_shader;
 }
 
 

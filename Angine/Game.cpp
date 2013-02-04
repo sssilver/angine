@@ -3,8 +3,8 @@
 
 Game::Game(HINSTANCE hInstance) : isRunning(true)
 {
-	this->kernel = new Kernel();
-	this->window = new Window(hInstance);
+    this->kernel = new Kernel();
+    this->window = new Window(hInstance);
     this->renderer = new Renderer(1920, 1080, true, this->window->getHWND(), true, 1.0f, .0f);
 }
 
@@ -19,22 +19,21 @@ Game::~Game(void)
 
 void Game::init()
 {
-	this->kernel->add(this->window);
-	this->kernel->add(this->renderer);
+    this->kernel->add(this->window);
+    this->kernel->add(this->renderer);
 }
 
 
 bool Game::running()
 {
-	return this->isRunning;
+    return this->isRunning;
 }
 
 
 void Game::run()
 {
     this->processKeyboard();
-	this->kernel->execute();
-
+    this->kernel->execute();
 }
 
 
@@ -59,6 +58,7 @@ void Game::processKeyboard()
 
 void Game::quit()
 {
+    this->kernel->flush();
     this->isRunning = false;
 
     OutputDebugString(L"Quit.\n");

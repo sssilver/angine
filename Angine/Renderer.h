@@ -8,15 +8,15 @@
 #include <Windows.h>
 #include <wingdi.h>
 
-#include <dxgi.h>
-#include <d3dcommon.h>
-#include <d3d11.h>
-#include <d3dx10math.h>
-
-
+#include <DXGI.h>
+#include <D3Dcommon.h>
+#include <D3D11.h>
+#include <D3DX10math.h>
+#include <D3DX11async.h>
 
 
 #include "itask.h"
+#include "Shader.h"
 
 
 class Renderer :
@@ -46,6 +46,8 @@ private:
     int screenWidth, screenHeight;
     bool isFullscreen;
     float screenDepth, screenNear;
+
+    Shader* m_shader;
 
 
     void beginScene(float red, float green, float blue, float alpha);
