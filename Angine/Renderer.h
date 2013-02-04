@@ -17,6 +17,7 @@
 
 #include "itask.h"
 #include "Shader.h"
+#include "Mesh.h"
 
 
 class Renderer :
@@ -48,6 +49,8 @@ private:
     float screenDepth, screenNear;
 
     Shader* m_shader;
+    Mesh* m_mesh;
+
 
 
     void beginScene(float red, float green, float blue, float alpha);

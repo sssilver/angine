@@ -5,7 +5,7 @@ Game::Game(HINSTANCE hInstance) : isRunning(true)
 {
     this->kernel = new Kernel();
     this->window = new Window(hInstance);
-    this->renderer = new Renderer(1920, 1080, true, this->window->getHWND(), true, 1.0f, .0f);
+    this->renderer = new Renderer(1920, 1080, true, this->window->getHWND(), false, 1.0f, .0f);
 }
 
 

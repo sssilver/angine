@@ -24,6 +24,7 @@ Renderer::Renderer(int screenWidth, int screenHeight, bool vsync, HWND hwnd, boo
     m_rasterState = 0;
 
     m_shader = new Shader();
+    m_mesh = new Mesh();
 }
 
 
@@ -171,7 +172,7 @@ bool Renderer::start(void)
     featureLevel = D3D_FEATURE_LEVEL_10_0;
 
     // Create the swap chain, Direct3D device, and Direct3D device context.
-    result = D3D11CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL,  0, &featureLevel, 1, 
+    result = D3D11CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, D3D11_CREATE_DEVICE_DEBUG, &featureLevel, 1, 
                                            D3D11_SDK_VERSION, &swapChainDesc, &m_swapChain, &m_device, NULL, &m_deviceContext);
     if (FAILED(result))
         return false;
@@ -232,6 +233,8 @@ bool Renderer::start(void)
     if (!(result))
         return false;
 
+    this->m_mesh->initialize(this->m_device);
+
     return true;
 }
 
@@ -239,15 +242,37 @@ bool Renderer::start(void)
 void Renderer::update(void)
 {
     D3DXMATRIX viewMatrix, projectionMatrix, worldMatrix;
+    D3DXVECTOR3 up, position, lookAt;
+
+    // Setup the vector that points upwards.
+    up.x = 0.0f;
+    up.y = 1.0f;
+    up.z = 0.0f;
+
+    // Setup the position of the camera in the world.
+    position.x = .0f;
+    position.y = .0f;
+    position.z = .0f;
+
+    // Setup where the camera is looking by default.
+    lookAt.x = 0.0f;
+    lookAt.y = 0.0f;
+    lookAt.z = 1.0f;
+
+
+    D3DXMatrixLookAtLH(&viewMatrix, &position, &lookAt, &up);
+
 
     this->beginScene(.3f, .0f, .0f, 1.0f);
-    this->m_shader->render(this->m_deviceContext, 3, m_worldMatrix, m_orthoMatrix, m_projectionMatrix);
+    this->m_mesh->render(this->m_deviceContext);
+    this->m_shader->render(this->m_deviceContext, 3, m_worldMatrix, viewMatrix, m_orthoMatrix);
     this->endScene();
 }
 
 
 void Renderer::stop(void)
 {
+    this->m_mesh->shutdown();
     this->m_shader->shutdown();
 
     // Before shutting down set to windowed mode or when you release the swap chain it will throw an exception.
@@ -299,6 +324,7 @@ void Renderer::stop(void)
 
 Renderer::~Renderer(void)
 {
+    delete this->m_mesh;
     delete this->m_shader;
 }
 
@@ -318,7 +344,7 @@ void Renderer::beginScene(float red, float green, float blue, float alpha)
     m_deviceContext->ClearRenderTargetView(m_renderTargetView, color);
     
     // Clear the depth buffer.
-    m_deviceContext->ClearDepthStencilView(m_depthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
+    // m_deviceContext->ClearDepthStencilView(m_depthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
     return;
 }
