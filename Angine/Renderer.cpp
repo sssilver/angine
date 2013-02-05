@@ -286,7 +286,7 @@ bool Renderer::start(void)
     viewport.Width = (float)screenWidth;
     viewport.Height = (float)screenHeight;
     viewport.MinDepth = 0.0f;
-    viewport.MaxDepth = 1.0f;
+    viewport.MaxDepth = 0.0f;
     viewport.TopLeftX = 0.0f;
     viewport.TopLeftY = 0.0f;
 
@@ -297,7 +297,7 @@ bool Renderer::start(void)
     D3DXMatrixIdentity(&m_worldMatrix);
 
     // Create an orthographic projection matrix for 2D rendering.
-    D3DXMatrixOrthoLH(&m_orthoMatrix, (float)screenWidth, (float)screenHeight, screenNear, screenDepth);
+	D3DXMatrixOrthoOffCenterLH(&m_orthoMatrix, 0, (float)screenWidth, (float)screenHeight, 0, screenNear, screenDepth);
 
     result = this->m_shader->initialize(this->m_device, this->hwnd, L"color.vs", L"color.ps");
     if (!(result))
@@ -329,13 +329,12 @@ void Renderer::update(void)
     lookAt.y = 0.0f;
     lookAt.z = 1.0f;
 
+	D3DXMatrixIdentity(&viewMatrix);
+	D3DXMatrixIdentity(&m_worldMatrix);
 
-    D3DXMatrixLookAtLH(&viewMatrix, &position, &lookAt, &up);
-
-
-    this->beginScene(.0f, .0f, .0f, 1.0f);
+    this->beginScene(.3f, .0f, .0f, 1.0f);
     this->m_mesh->render(this->m_deviceContext);
-    this->m_shader->render(this->m_deviceContext, 3, m_worldMatrix, viewMatrix, m_orthoMatrix);
+    this->m_shader->render(this->m_deviceContext, this->m_mesh->getIndexCount(), m_worldMatrix, viewMatrix, m_orthoMatrix);
     this->endScene();
 }
 
