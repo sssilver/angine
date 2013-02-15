@@ -1,30 +1,24 @@
 #include "Renderer.h"
 
 
-Renderer::Renderer(int screenWidth, int screenHeight, bool vsync, HWND hwnd, bool isFullscreen, float screenDepth, float screenNear)
+Renderer::Renderer(int screenWidth, int screenHeight, bool isVsync, HWND hwnd, bool isFullscreen, float screenDepth, float screenNear) :
+	hwnd_(hwnd),
+	screenWidth_(screenWidth), screenHeight_(screenHeight),
+	screenDepth_(screenDepth), screenNear_(screenNear),
+	isFullscreen_(isFullscreen),
+	isVsync_(isVsync),
+
+    swapChain_(0),
+    device_(0),
+    deviceContext_(0),
+    renderTargetView_(0),
+    depthStencilBuffer_(0),
+    depthStencilState_(0),
+    depthStencilView_(0),
+    rasterState_(0)
 {
-
-    this->hwnd = hwnd;
-    this->screenWidth = screenWidth;
-    this->screenHeight = screenHeight;
-    this->screenDepth = screenDepth;
-    this->screenNear = screenNear;
-    this->isFullscreen = isFullscreen;
-    
-    // Store the vsync setting.
-    this->m_vsync_enabled = vsync;
-
-    m_swapChain = 0;
-    m_device = 0;
-    m_deviceContext = 0;
-    m_renderTargetView = 0;
-    m_depthStencilBuffer = 0;
-    m_depthStencilState = 0;
-    m_depthStencilView = 0;
-    m_rasterState = 0;
-
-    m_shader = new Shader();
-    m_mesh = new Mesh();
+    shader_ = new Shader();
+    mesh_ = new Mesh();
 }
 
 
@@ -83,9 +77,9 @@ bool Renderer::start(void)
 
     // Now go through all the display modes and find the one that matches the screen width and height.
     // When a match is found store the numerator and denominator of the refresh rate for that monitor.
-    for (i=0; i<numModes; i++) {
-        if (displayModeList[i].Width == (unsigned int)screenWidth) {
-            if (displayModeList[i].Height == (unsigned int)screenHeight) {
+    for (i=0; i<numModes; ++i) {
+        if (displayModeList[i].Width == (unsigned int)screenWidth_) {
+            if (displayModeList[i].Height == (unsigned int)screenHeight_) {
                 numerator = displayModeList[i].RefreshRate.Numerator;
                 denominator = displayModeList[i].RefreshRate.Denominator;
             }
@@ -100,10 +94,10 @@ bool Renderer::start(void)
     OutputDebugString(adapterDesc.Description);
 
     // Store the dedicated video card memory in megabytes.
-    m_videoCardMemory = (int)(adapterDesc.DedicatedVideoMemory / 1024 / 1024);
+    videoCardMemory_ = (int)(adapterDesc.DedicatedVideoMemory / 1024 / 1024);
 
     // Convert the name of the video card to a character array and store it.
-    error = wcstombs_s(&stringLength, m_videoCardDescription, 128, adapterDesc.Description, 128);
+    error = wcstombs_s(&stringLength, videoCardDescription_, 128, adapterDesc.Description, 128);
     if (error != 0)
         return false;
 
@@ -130,14 +124,14 @@ bool Renderer::start(void)
     swapChainDesc.BufferCount = 1;
 
     // Set the width and height of the back buffer.
-    swapChainDesc.BufferDesc.Width = screenWidth;
-    swapChainDesc.BufferDesc.Height = screenHeight;
+    swapChainDesc.BufferDesc.Width = screenWidth_;
+    swapChainDesc.BufferDesc.Height = screenHeight_;
 
     // Set regular 32-bit surface for the back buffer.
     swapChainDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 
     // Set the refresh rate of the back buffer.
-    if (m_vsync_enabled) {
+    if (isVsync_) {
         swapChainDesc.BufferDesc.RefreshRate.Numerator = numerator;
         swapChainDesc.BufferDesc.RefreshRate.Denominator = denominator;
     } else {
@@ -149,14 +143,14 @@ bool Renderer::start(void)
     swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 
     // Set the handle for the window to render to.
-    swapChainDesc.OutputWindow = hwnd;
+    swapChainDesc.OutputWindow = hwnd_;
 
     // Turn multisampling off.
     swapChainDesc.SampleDesc.Count = 1;
     swapChainDesc.SampleDesc.Quality = 0;
 
     // Set to full screen or windowed mode.
-    swapChainDesc.Windowed = !isFullscreen;
+    swapChainDesc.Windowed = !isFullscreen_;
 
     // Set the scan line ordering and scaling to unspecified.
     swapChainDesc.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
@@ -173,17 +167,17 @@ bool Renderer::start(void)
 
     // Create the swap chain, Direct3D device, and Direct3D device context.
     result = D3D11CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, D3D11_CREATE_DEVICE_DEBUG, &featureLevel, 1, 
-                                           D3D11_SDK_VERSION, &swapChainDesc, &m_swapChain, &m_device, NULL, &m_deviceContext);
+                                           D3D11_SDK_VERSION, &swapChainDesc, &swapChain_, &device_, NULL, &deviceContext_);
     if (FAILED(result))
         return false;
 
     // Get the pointer to the back buffer.
-    result = m_swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&backBufferPtr);
+    result = swapChain_->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&backBufferPtr);
     if (FAILED(result))
         return false;
 
     // Create the render target view with the back buffer pointer.
-    result = m_device->CreateRenderTargetView(backBufferPtr, NULL, &m_renderTargetView);
+    result = device_->CreateRenderTargetView(backBufferPtr, NULL, &renderTargetView_);
     if (FAILED(result))
         return false;
 
@@ -195,8 +189,8 @@ bool Renderer::start(void)
     ZeroMemory(&depthBufferDesc, sizeof(depthBufferDesc));
 
     // Set up the description of the depth buffer.
-    depthBufferDesc.Width = screenWidth;
-    depthBufferDesc.Height = screenHeight;
+    depthBufferDesc.Width = screenWidth_;
+    depthBufferDesc.Height = screenHeight_;
     depthBufferDesc.MipLevels = 1;
     depthBufferDesc.ArraySize = 1;
     depthBufferDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
@@ -208,7 +202,7 @@ bool Renderer::start(void)
     depthBufferDesc.MiscFlags = 0;
 
     // Create the texture for the depth buffer using the filled out description.
-    result = m_device->CreateTexture2D(&depthBufferDesc, NULL, &m_depthStencilBuffer);
+    result = device_->CreateTexture2D(&depthBufferDesc, NULL, &depthStencilBuffer_);
     if (FAILED(result))
         return false;
 
@@ -237,12 +231,12 @@ bool Renderer::start(void)
     depthStencilDesc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
 
     // Create the depth stencil state.
-    result = m_device->CreateDepthStencilState(&depthStencilDesc, &m_depthStencilState);
+    result = device_->CreateDepthStencilState(&depthStencilDesc, &depthStencilState_);
     if (FAILED(result))
         return false;
 
     // Set the depth stencil state.
-    m_deviceContext->OMSetDepthStencilState(m_depthStencilState, 1);
+    deviceContext_->OMSetDepthStencilState(depthStencilState_, 1);
 
     	// Initailze the depth stencil view.
 	ZeroMemory(&depthStencilViewDesc, sizeof(depthStencilViewDesc));
@@ -253,12 +247,12 @@ bool Renderer::start(void)
 	depthStencilViewDesc.Texture2D.MipSlice = 0;
 
     // Create the depth stencil view.
-    result = m_device->CreateDepthStencilView(m_depthStencilBuffer, &depthStencilViewDesc, &m_depthStencilView);
+    result = device_->CreateDepthStencilView(depthStencilBuffer_, &depthStencilViewDesc, &depthStencilView_);
     if (FAILED(result))
         return false;
 
     // Bind the render target view and depth stencil buffer to the output render pipeline.
-    m_deviceContext->OMSetRenderTargets(1, &m_renderTargetView, m_depthStencilView);
+    deviceContext_->OMSetRenderTargets(1, &renderTargetView_, depthStencilView_);
 
 
     // Setup the raster description which will determine how and what polygons will be drawn.
@@ -275,35 +269,37 @@ bool Renderer::start(void)
 
 
     // Create the rasterizer state from the description we just filled out.
-    result = m_device->CreateRasterizerState(&rasterDesc, &m_rasterState);
+    result = device_->CreateRasterizerState(&rasterDesc, &rasterState_);
     if (FAILED(result))
         return false;
 
     // Now set the rasterizer state.
-    m_deviceContext->RSSetState(m_rasterState);
+    deviceContext_->RSSetState(rasterState_);
 
     // Setup the viewport for rendering.
-    viewport.Width = (float)screenWidth;
-    viewport.Height = (float)screenHeight;
+    viewport.Width = (float)screenWidth_;
+    viewport.Height = (float)screenHeight_;
     viewport.MinDepth = 0.0f;
     viewport.MaxDepth = 0.0f;
     viewport.TopLeftX = 0.0f;
     viewport.TopLeftY = 0.0f;
 
     // Create the viewport.
-    m_deviceContext->RSSetViewports(1, &viewport);
+    deviceContext_->RSSetViewports(1, &viewport);
 
     // Initialize the world matrix to the identity matrix.
-    D3DXMatrixIdentity(&m_worldMatrix);
+    D3DXMatrixIdentity(&worldMatrix_);
 
     // Create an orthographic projection matrix for 2D rendering.
-	D3DXMatrixOrthoOffCenterLH(&m_orthoMatrix, 0, (float)screenWidth, (float)screenHeight, 0, screenNear, screenDepth);
+	//D3DXMatrixOrthoOffCenterLH(&orthoMatrix_, 0, (float)screenWidth_, (float)screenHeight_, 0, screenNear_, screenDepth_);
+	D3DXMatrixPerspectiveFovLH(&orthoMatrix_, D3DX_PI / 4.0f, (float)screenWidth_ / (float)screenHeight_, screenNear_, screenDepth_);
 
-    result = this->m_shader->initialize(this->m_device, this->hwnd, L"color.vs", L"color.ps");
+	// Initialize a minimal shader
+    result = shader_->initialize(device_, hwnd_, L"color.vs", L"color.ps");
     if (!(result))
         return false;
 
-    this->m_mesh->initialize(this->m_device);
+    mesh_->initialize(device_);
 
     return true;
 }
@@ -320,81 +316,86 @@ void Renderer::update(void)
     up.z = 0.0f;
 
     // Setup the position of the camera in the world.
+    position.x = -5.0f;
+    position.y = 5.0f;
+    position.z = 5.0f;
+
     position.x = .0f;
-    position.y = .0f;
-    position.z = .0f;
+    position.y = 5.0f;
+    position.z = 3.0f;
 
     // Setup where the camera is looking by default.
     lookAt.x = 0.0f;
     lookAt.y = 0.0f;
-    lookAt.z = 1.0f;
+    lookAt.z = 0.0f;
 
 	D3DXMatrixIdentity(&viewMatrix);
-	D3DXMatrixIdentity(&m_worldMatrix);
+	D3DXMatrixLookAtLH(&viewMatrix, &position, &lookAt, &up);
+	D3DXMatrixIdentity(&worldMatrix_);
 
-    this->beginScene(.3f, .0f, .0f, 1.0f);
-    this->m_mesh->render(this->m_deviceContext);
-    this->m_shader->render(this->m_deviceContext, this->m_mesh->getIndexCount(), m_worldMatrix, viewMatrix, m_orthoMatrix);
-    this->endScene();
+    beginScene(.3f, .0f, .0f, 1.0f);
+    mesh_->render(deviceContext_);
+    shader_->render(deviceContext_, 24, worldMatrix_, viewMatrix, orthoMatrix_);
+    endScene();
 }
 
 
 void Renderer::stop(void)
 {
-    this->m_mesh->shutdown();
-    this->m_shader->shutdown();
+    mesh_->shutdown();
+    shader_->shutdown();
 
     // Before shutting down set to windowed mode or when you release the swap chain it will throw an exception.
-    if (m_swapChain) {
-        m_swapChain->SetFullscreenState(false, NULL);
+    if (swapChain_) {
+        swapChain_->SetFullscreenState(false, NULL);
     }
 
-    if (m_rasterState) {
-        m_rasterState->Release();
-        m_rasterState = 0;
+    if (rasterState_) {
+        rasterState_->Release();
+        rasterState_ = 0;
     }
 
-    if (m_depthStencilView) {
-        m_depthStencilView->Release();
-        m_depthStencilView = 0;
+    if (depthStencilView_) {
+        depthStencilView_->Release();
+        depthStencilView_ = 0;
     }
 
-    if (m_depthStencilState) {
-        m_depthStencilState->Release();
-        m_depthStencilState = 0;
+    if (depthStencilState_) {
+        depthStencilState_->Release();
+        depthStencilState_ = 0;
     }
 
-    if (m_depthStencilBuffer) {
-        m_depthStencilBuffer->Release();
-        m_depthStencilBuffer = 0;
+    if (depthStencilBuffer_) {
+        depthStencilBuffer_->Release();
+        depthStencilBuffer_ = 0;
     }
 
-    if(m_renderTargetView) {
-        m_renderTargetView->Release();
-        m_renderTargetView = 0;
+    if(renderTargetView_) {
+        renderTargetView_->Release();
+        renderTargetView_ = 0;
     }
 
-    if(m_deviceContext) {
-        m_deviceContext->Release();
-        m_deviceContext = 0;
+    if(deviceContext_) {
+        deviceContext_->Release();
+        deviceContext_ = 0;
     }
 
-    if(m_device) {
-        m_device->Release();
-        m_device = 0;
+    if(device_) {
+        device_->Release();
+        device_ = 0;
     }
 
-    if(m_swapChain) {
-        m_swapChain->Release();
-        m_swapChain = 0;
+    if(swapChain_) {
+        swapChain_->Release();
+        swapChain_ = 0;
     }
 }
 
 
 Renderer::~Renderer(void)
 {
-    delete this->m_mesh;
-    delete this->m_shader;
+    delete mesh_;
+    delete shader_;
 }
 
 
@@ -410,10 +411,10 @@ void Renderer::beginScene(float red, float green, float blue, float alpha)
     color[3] = alpha;
 
     // Clear the back buffer.
-    m_deviceContext->ClearRenderTargetView(m_renderTargetView, color);
+    deviceContext_->ClearRenderTargetView(renderTargetView_, color);
     
     // Clear the depth buffer.
-    m_deviceContext->ClearDepthStencilView(m_depthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
+    deviceContext_->ClearDepthStencilView(depthStencilView_, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
     return;
 }
@@ -422,12 +423,12 @@ void Renderer::beginScene(float red, float green, float blue, float alpha)
 void Renderer::endScene()
 {
     // Present the back buffer to the screen since rendering is complete.
-    if (m_vsync_enabled) {
+    if (isVsync_) {
         // Lock to screen refresh rate.
-        m_swapChain->Present(1, 0);
+        swapChain_->Present(1, 0);
     } else {
         // Present as fast as possible.
-        m_swapChain->Present(0, 0);
+        swapChain_->Present(0, 0);
     }
 
     return;

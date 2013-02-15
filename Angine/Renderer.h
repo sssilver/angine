@@ -24,32 +24,34 @@ class Renderer :
     public ITask
 {
 private:
-    HWND hwnd;
-    HDC hdc;
-    int iPixelFormat; 
-    HGLRC hglrc; 
+    HWND	hwnd_;
+    HDC		hdc_;
+    int		pixelFormat_; 
+    HGLRC	hglrc_; 
 
-    bool m_vsync_enabled;
-    int m_videoCardMemory;
-    char m_videoCardDescription[128];
-    IDXGISwapChain* m_swapChain;
-    ID3D11Device* m_device;
-    ID3D11DeviceContext* m_deviceContext;
-    ID3D11RenderTargetView* m_renderTargetView;
-    ID3D11Texture2D* m_depthStencilBuffer;
-    ID3D11DepthStencilState* m_depthStencilState;
-    ID3D11DepthStencilView* m_depthStencilView;
-    ID3D11RasterizerState* m_rasterState;
-    D3DXMATRIX m_projectionMatrix;
-    D3DXMATRIX m_worldMatrix;
-    D3DXMATRIX m_orthoMatrix;
+    bool	isVsync_;
+    int		videoCardMemory_;
+    char	videoCardDescription_[128];
 
-    int screenWidth, screenHeight;
-    bool isFullscreen;
-    float screenDepth, screenNear;
+    IDXGISwapChain*				swapChain_;
+    ID3D11Device*				device_;
+    ID3D11DeviceContext*		deviceContext_;
+    ID3D11RenderTargetView*		renderTargetView_;
+    ID3D11Texture2D*			depthStencilBuffer_;
+    ID3D11DepthStencilState*	depthStencilState_;
+    ID3D11DepthStencilView*		depthStencilView_;
+    ID3D11RasterizerState*		rasterState_;
 
-    Shader* m_shader;
-    Mesh* m_mesh;
+    D3DXMATRIX projectionMatrix_;
+    D3DXMATRIX worldMatrix_;
+    D3DXMATRIX orthoMatrix_;
+
+    int		screenWidth_, screenHeight_;
+    bool	isFullscreen_;
+    float	screenDepth_, screenNear_;
+
+    Shader* shader_;
+    Mesh*	mesh_;
 
 
 
@@ -58,7 +60,7 @@ private:
 
 
 public:
-    Renderer(int screenWidth, int screenHeight, bool vsync, HWND hwnd, bool isFullscreen, float screenDepth, float screenNear);
+    Renderer(int screenWidth, int screenHeight, bool isVsync, HWND hwnd, bool isFullscreen, float screenDepth, float screenNear);
     ~Renderer(void);
 
 	bool start(void);

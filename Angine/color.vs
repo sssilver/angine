@@ -37,7 +37,7 @@ PixelInputType ColorVertexShader(VertexInputType input)
     
 
     // Change the position vector to be 4 units for proper matrix calculations.
-    //input.position.w = .004f;
+    //input.position.w = 90000000.0f;
 
 
     // Calculate the position of the vertex against the world, view, and projection matrices.

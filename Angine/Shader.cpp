@@ -1,7 +1,7 @@
 #include "Shader.h"
 
 
-Shader::Shader(void)
+Shader::Shader(void) : number(.0f)
 {
     m_vertexShader = 0;
     m_pixelShader = 0;
@@ -173,6 +173,8 @@ bool Shader::setParameters(ID3D11DeviceContext* deviceContext, D3DXMATRIX worldM
     MatrixBufferType* dataPtr;
     unsigned int bufferNumber;
 
+
+ 	D3DXMatrixTranslation(&worldMatrix, this->number, 0.0f, 0.0f);
     // Transpose the matrices to prepare them for the shader.
     D3DXMatrixTranspose(&worldMatrix, &worldMatrix);
     D3DXMatrixTranspose(&viewMatrix, &viewMatrix);
@@ -190,6 +192,8 @@ bool Shader::setParameters(ID3D11DeviceContext* deviceContext, D3DXMATRIX worldM
     dataPtr->world = worldMatrix;
     dataPtr->view = viewMatrix;
     dataPtr->projection = projectionMatrix;
+
+
 
     // Unlock the constant buffer.
     deviceContext->Unmap(m_matrixBuffer, 0);

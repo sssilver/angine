@@ -22,6 +22,8 @@ private:
         D3DXMATRIX projection;
     };
 
+	float number;
+
 public:
     Shader(void);
     ~Shader(void);
